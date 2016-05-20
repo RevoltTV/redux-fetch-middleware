@@ -22,7 +22,12 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         if (action.fetch.auth && config.auth) {
             // Allow the config object to specify the Authorization header, or
             // specify a function to get the Authorization header from state
-            headers['Authorization'] = _.isFunction(config.auth) ? config.auth(state, action) : config.auth
+            let authFn = _.isFunction(config.auth) ? config.auth : _.noop;
+            if (_.isFunction(action.fetch.auth)) {
+                authFn = action.fetch.auth;
+            }
+
+            headers['Authorization'] = authFn(state, action);
         }
 
         let options = {
@@ -40,8 +45,10 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         promise = fetch(action.fetch.url, options)
         .then(response => {
             if (response.status >= 200 && response.status < 300) {
+                log(`${options.method} :: ${action.fetch.url}`);
                 return response.json();
             } else {
+                log(`FAILURE: ${options.method} :: ${action.fetch.url} (${response.status})`);
                 let error = new Error(response.statusText);
                 error.status = response.status;
                 error.response = response;
@@ -49,10 +56,13 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
             }
         })
         .catch(err => {
-            return next({
+            next({
                 type: `${action.type}_FAILURE`,
-                payload: err
+                payload: err,
+                promise
             });
+
+            throw err;
         });
 
         next({
@@ -65,7 +75,8 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
     return promise.then(body => {
         next({
             type: action.type,
-            payload: body
+            payload: body,
+            promise
         });
 
         return body;
