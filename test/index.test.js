@@ -1,6 +1,7 @@
 import chai           from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import nock           from 'nock';
+import sinon          from 'sinon';
 
 import fetchMiddleware from '../';
 
@@ -24,29 +25,53 @@ describe('redux-fetch-middleware', () => {
         actionHandler(actionDefinition);
     });
 
-    it('should call cache method if cache is specified', (done) => {
+    describe('caching', () => {
         const middleware = fetchMiddleware()({ getState: doGetState });
-        const actionDefinition = {
-            type: 'test',
-            fetch: {
-                cache: (state, action) => {
-                    state.should.be.a('object');
-                    action.should.equal(actionDefinition);
-                    return true;
-                }
-            }
-        };
 
-        const actionHandler = middleware(action => {
-            action.type.should.equal(actionDefinition.type);
+        it('should call cache method if cache is specified', () => {
+            let actionDefinition = {
+                type: 'test',
+                fetch: {
+                    cache: (state, action) => {
+                        state.should.be.a('object');
+                        action.should.equal(actionDefinition);
+                        return true;
+                    }
+                }
+            };
+
+            const actionHandler = middleware(action => {
+                action.type.should.equal(actionDefinition.type);
+            });
+
+            let promise = actionHandler(actionDefinition);
+
+            return promise.should.be.fulfilled.and.
+                           should.eventually.equal(true);
         });
 
-        actionHandler(actionDefinition)
-        .then(data => {
-            data.should.equal(true);
-            done();
-        })
-        .catch(done);
+        it('should fetch if cache is specified but returns falsey value', () => {
+            let request = nock('http://localhost').get('/test.json').reply(200, { data: true });
+
+            let actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/test.json',
+                    cache: sinon.stub().returns(null)
+                }
+            };
+
+            const actionHandler = middleware(() => {});
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled.
+            then((data) => {
+                actionDefinition.fetch.cache.calledOnce.should.equal(true);
+                actionDefinition.fetch.cache.calledWith({}, actionDefinition).should.equal(true);
+
+                data.data.should.equal(true);
+                request.isDone().should.equal(true);
+            });
+        });
     });
 
     it('should fetch the specified resource', () => {
