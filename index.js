@@ -65,7 +65,10 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
             next({
                 type: `${action.type}_FAILURE`,
                 payload: err,
-                promise
+                error: true,
+                meta: {
+                    promise
+                }
             });
 
             throw err;
@@ -74,7 +77,9 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         next({
             type: `${action.type}_PENDING`,
             payload: action,
-            promise
+            meta: {
+                promise
+            }
         });
     }
 
@@ -82,7 +87,9 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         next({
             type: action.type,
             payload: body,
-            promise
+            meta: {
+                promise
+            }
         });
 
         return body;
