@@ -183,6 +183,101 @@ describe('redux-fetch-middleware', () => {
                 request.isDone().should.equal(true);
             });
         });
+
+        it('should allow for common headers to be specified in the config', () => {
+            let request = nock('http://localhost', {
+                reqheaders: {
+                    'x-app-id': 'test'
+                }
+            }).get('/').reply(200, { test: true });
+
+            actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/'
+                }
+            };
+
+            const configMiddleware = fetchMiddleware({
+                headers: {
+                    'X-App-Id': 'test'
+                }
+            })({ getState: doGetState });
+            const actionHandler = configMiddleware(actionVerifier);
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.should.be.a('object');
+                data.test.should.equal(true);
+                request.isDone().should.equal(true);
+            });
+        });
+
+        it('should allow for custom headers to be specified in fetch object', () => {
+            let request = nock('http://localhost', {
+                reqheaders: {
+                    'x-app-id': 'test'
+                }
+            }).get('/').reply(200, { test: true });
+
+            actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/',
+                    headers: {
+                        'X-App-Id': 'test'
+                    }
+                }
+            };
+
+            const actionHandler = middleware(actionVerifier);
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.should.be.a('object');
+                data.test.should.equal(true);
+                request.isDone().should.equal(true);
+            });
+        });
+
+        it('should merge headers from config and fetch object, preferring fetch header', () => {
+            let request = nock('http://localhost', {
+                reqheaders: {
+                    'x-app-id': 'test',
+                    'x-custom': 'test',
+                    'x-config': 'test'
+                }
+            }).get('/').reply(200, { test: true });
+
+            actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/',
+                    headers: {
+                        'X-App-Id': 'test',
+                        'X-Custom': 'test'
+                    }
+                }
+            };
+
+            const configMiddleware = fetchMiddleware({
+                headers: {
+                    'X-App-Id': 'config test',
+                    'X-Config': 'test'
+                }
+            })({ getState: doGetState });
+            const actionHandler = configMiddleware(() => { });
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.should.be.a('object');
+                data.test.should.equal(true);
+                request.isDone().should.equal(true);
+            });
+        });
     });
 
     describe('authenticated requests', () => {

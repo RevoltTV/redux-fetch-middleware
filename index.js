@@ -37,7 +37,7 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
 
         let options = {
             credentials: action.fetch.credentials || config.credentials || 'omit',
-            headers: _.extend(headers, action.fetch.headers),
+            headers: _.extend(headers, config.headers, action.fetch.headers),
             method: action.fetch.method || 'GET'
         };
 
