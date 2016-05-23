@@ -4,6 +4,9 @@
   "description": "Middleware for fetching remote resources",
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
+  "engines": {
+      "node": ">=0.12"
+  },
   "files": [
     "dist",
     "lib",
