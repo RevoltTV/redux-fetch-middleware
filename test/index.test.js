@@ -9,6 +9,10 @@ chai.use(chaiAsPromised);
 chai.should();
 
 describe('redux-fetch-middleware', () => {
+    afterEach(() => {
+        nock.cleanAll();
+    });
+
     const doGetState = () => { return {}; };
 
     it('should do nothing if no fetch key is defined', (done) => {
@@ -153,14 +157,20 @@ describe('redux-fetch-middleware', () => {
         });
 
         it('should let method be specified for the fetch request', () => {
-            let request = nock('http://localhost').post('/api').reply(200, { test: true });
+            let request = nock('http://localhost', {
+                reqheaders: {
+                    accept: 'application/json',
+                    'content-type': 'application/json'
+                }
+            }).post('/api', { test: true }).reply(200, { test: true });
 
             actionDefinition = {
                 type: 'test',
                 fetch: {
                     url: 'http://localhost/api',
                     method: 'POST'
-                }
+                },
+                payload: { test: true }
             };
 
             const actionHandler = middleware(actionVerifier);
@@ -172,6 +182,134 @@ describe('redux-fetch-middleware', () => {
                 data.test.should.equal(true);
                 request.isDone().should.equal(true);
             });
-        })
+        });
+    });
+
+    describe('authenticated requests', () => {
+        it('should use config auth function for specifying Authorization header', () => {
+            let request = nock('http://localhost', {
+                reqheaders: {
+                    'authorization': 'Bearer test'
+                }
+            }).get('/').reply(200, { test: true });
+
+            const actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/'
+                }
+            };
+
+            const authFn = sinon.stub().returns('Bearer test');
+
+            const middleware = fetchMiddleware({ auth: authFn })({ getState: doGetState });
+            const actionHandler = middleware(() => {});
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.should.be.a('object');
+                data.test.should.equal(true);
+
+                authFn.calledOnce.should.equal(true);
+                authFn.firstCall.args[0].should.deep.equal({});
+                authFn.firstCall.args[1].should.equal(actionDefinition);
+
+                request.isDone().should.equal(true);
+            });
+        });
+
+        it('should not use Authorization header if auth function returns falsey value', () => {
+            let request = nock('http://localhost', {
+                badheaders: ['authorization']
+            }).get('/').reply(200, { test: true });
+
+            const actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/'
+                }
+            };
+
+            const authFn = sinon.stub().returns('');
+
+            const middleware = fetchMiddleware({ auth: authFn })({ getState: doGetState });
+            const actionHandler = middleware(() => {});
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.should.be.a('object');
+                data.test.should.equal(true);
+
+                authFn.calledOnce.should.equal(true);
+                authFn.firstCall.args[0].should.deep.equal({});
+                authFn.firstCall.args[1].should.equal(actionDefinition);
+
+                request.isDone().should.equal(true);
+            });
+        });
+
+        it('should use fetch object auth function if specified', () => {
+            let request = nock('http://localhost', {
+                reqheaders: {
+                    'authorization': 'Bearer test'
+                }
+            }).get('/').reply(200, { test: true });
+
+            const configAuthFn = sinon.stub().returns('Bearer badtest');
+            const fetchAuthFn = sinon.stub().returns('Bearer test');
+
+            const actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/',
+                    auth: fetchAuthFn
+                }
+            };
+
+            const middleware = fetchMiddleware({ auth: configAuthFn })({ getState: doGetState });
+            const actionHandler = middleware(() => {});
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.should.be.a('object');
+                data.test.should.equal(true);
+
+                configAuthFn.called.should.equal(false);
+
+                fetchAuthFn.calledOnce.should.equal(true);
+                fetchAuthFn.firstCall.args[0].should.deep.equal({});
+                fetchAuthFn.firstCall.args[1].should.equal(actionDefinition);
+
+                request.isDone().should.equal(true);
+            });
+        });
+
+        it('should not include Authorization header if neither fetch nor config specify a function', () => {
+            let request = nock('http://localhost', {
+                badheaders: ['authorization']
+            }).get('/').reply(200, { test: true });
+
+            const actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/'
+                }
+            };
+
+            const middleware = fetchMiddleware({ auth: true })({ getState: doGetState });
+            const actionHandler = middleware(() => {});
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.should.be.a('object');
+                data.test.should.equal(true);
+
+                request.isDone().should.equal(true);
+            });
+        });
     });
 });
