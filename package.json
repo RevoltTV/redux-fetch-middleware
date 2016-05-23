@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
   "engines": {
-      "node": ">=0.12"
+    "node": ">=0.12"
   },
   "files": [
     "dist",
@@ -49,6 +49,7 @@
     "babel-register": "^6.9.0",
     "chai": "^3.5.0",
     "chai-as-promised": "^5.3.0",
+    "coveralls": "^2.11.9",
     "cross-env": "^1.0.7",
     "eslint": "^2.8.0",
     "eslint-config-revolt": "^0.1.6",
