@@ -16,6 +16,7 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         // The `action.api` definition specified how to retrieve an already
         // fetched value. If that method also returns data, we assume that the
         // state is already populated with the response for the current request
+        log('retrieved value from cache', action, cached);
         promise = Promise.resolve(cached);
     } else {
         let headers = {};
@@ -27,11 +28,12 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
                 authFn = action.fetch.auth;
             }
 
+            log('applying auth header');
             headers['Authorization'] = authFn(state, action);
         }
 
         let options = {
-            credentials: config.credentials || 'include',
+            credentials: action.fetch.credentials || config.credentials || 'include',
             headers: _.extend(headers, action.fetch.headers),
             method: action.fetch.method || 'GET'
         };
@@ -48,7 +50,6 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
                 log(`${options.method} :: ${action.fetch.url}`);
                 return response.json();
             } else {
-                log(`FAILURE: ${options.method} :: ${action.fetch.url} (${response.status})`);
                 let error = new Error(response.statusText);
                 error.status = response.status;
                 error.response = response;
@@ -56,6 +57,8 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
             }
         })
         .catch(err => {
+            log(`FAILURE: ${options.method} :: ${action.fetch.url} (${_.get(err, 'response.status', 500)})`);
+
             next({
                 type: `${action.type}_FAILURE`,
                 payload: err,

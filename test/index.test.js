@@ -46,8 +46,8 @@ describe('redux-fetch-middleware', () => {
 
             let promise = actionHandler(actionDefinition);
 
-            return promise.should.be.fulfilled.and.
-                           should.eventually.equal(true);
+            return promise.should.be.fulfilled.and
+                          .should.eventually.equal(true);
         });
 
         it('should fetch if cache is specified but returns falsey value', () => {
@@ -63,8 +63,8 @@ describe('redux-fetch-middleware', () => {
 
             const actionHandler = middleware(() => {});
             let promise = actionHandler(actionDefinition);
-            return promise.should.be.fulfilled.
-            then((data) => {
+            return promise.should.be.fulfilled
+            .then((data) => {
                 actionDefinition.fetch.cache.calledOnce.should.equal(true);
                 actionDefinition.fetch.cache.calledWith({}, actionDefinition).should.equal(true);
 
@@ -77,7 +77,6 @@ describe('redux-fetch-middleware', () => {
     describe('basic requests', () => {
         it('should fetch the specified resource', () => {
             let request = nock('http://localhost').get('/test.json').reply(200, { data: true });
-
             // Pending event should fire first, so lets ensure we check both action types
             let pending = true;
 
@@ -102,10 +101,10 @@ describe('redux-fetch-middleware', () => {
             });
 
             let promise = actionHandler(actionDefinition);
-            return promise.should.be.fulfilled.and.
-                           should.eventually.be.a('object').and.
-                           should.eventually.deep.equal({ data: true }).
-            then(() => {
+            return promise.should.be.fulfilled.and
+                          .should.eventually.be.a('object').and
+                          .should.eventually.deep.equal({ data: true })
+            .then(() => {
                 pending.should.equal(false);
                 request.isDone().should.equal(true);
             });
@@ -113,7 +112,6 @@ describe('redux-fetch-middleware', () => {
 
         it('should send FAILURE action when statusCode is not an acceptable value', () => {
             let request = nock('http://localhost').get('/test.json').reply(404, 'Not found');
-
             let pending = true;
 
             const middleware = fetchMiddleware()({ getState: doGetState });
@@ -138,8 +136,8 @@ describe('redux-fetch-middleware', () => {
 
             let promise = actionHandler(actionDefinition);
 
-            return promise.should.be.rejected.
-            then((err) => {
+            return promise.should.be.rejected
+            .then((err) => {
                 err.status.should.equal(404);
                 err.response.should.be.a('object');
                 err.response.statusText.should.equal('Not Found');
@@ -147,5 +145,35 @@ describe('redux-fetch-middleware', () => {
                 request.isDone().should.equal(true);
             });
         });
+
+        it('should let method be specified for the fetch request', () => {
+            let request = nock('http://localhost').post('/api').reply(200, { test: true });
+            let pending = true;
+
+            const middleware = fetchMiddleware()({ getState: doGetState });
+            const actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/api',
+                    method: 'POST'
+                }
+            };
+
+            const actionHandler = middleware((action) => {
+                if (pending) {
+                    action.type.should.equal(`${actionDefinition.type}_PENDING`);
+                    pending = false;
+                } else {
+                    action.type.should.equal(actionDefinition.type);
+                }
+            });
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.test.should.equal(true);
+                request.isDone().should.equal(true);
+            });
+        })
     });
 });
