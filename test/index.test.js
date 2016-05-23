@@ -406,5 +406,31 @@ describe('redux-fetch-middleware', () => {
                 request.isDone().should.equal(true);
             });
         });
+
+        it('should not include Authorization header if fetch explicitly sets auth to false', () => {
+            let request = nock('http://localhost', {
+                badheaders: ['authorization']
+            }).get('/').reply(200, { test: true });
+
+            const actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/',
+                    auth: false
+                }
+            };
+
+            const middleware = fetchMiddleware({ auth: () => { return 'Authorization'; } })({ getState: doGetState });
+            const actionHandler = middleware(() => {});
+
+            let promise = actionHandler(actionDefinition);
+            return promise.should.be.fulfilled
+            .then((data) => {
+                data.should.be.a('object');
+                data.test.should.equal(true);
+
+                request.isDone().should.equal(true);
+            });
+        });
     });
 });

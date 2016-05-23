@@ -20,7 +20,7 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         promise = Promise.resolve(cached);
     } else {
         let headers = {};
-        if (action.fetch.auth || config.auth) {
+        if (action.fetch.auth !== false && (action.fetch.auth || config.auth)) {
             // Allow the config object to specify the Authorization header, or
             // specify a function to get the Authorization header from state
             let authFn = _.isFunction(config.auth) ? config.auth : _.noop;
