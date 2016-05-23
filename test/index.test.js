@@ -75,30 +75,38 @@ describe('redux-fetch-middleware', () => {
     });
 
     describe('basic requests', () => {
+        let pending;
+        let actionDefinition;
+        let middleware = fetchMiddleware()({ getState: doGetState });
+
+        let actionVerifier = (action) => {
+            if (pending) {
+                // The `PENDING` action should be sent first, so ensure that's what we receive, then flip pending so
+                // we can check the next action is the expected type
+                action.type.should.equal(`${actionDefinition.type}_PENDING`);
+                pending = false;
+            } else {
+                // We've already received the `PENDING` action, so now we should receive the real action
+                action.type.should.equal(actionDefinition.type);
+            }
+        };
+
+        beforeEach(() => {
+            pending = true;
+        });
+
         it('should fetch the specified resource', () => {
             let request = nock('http://localhost').get('/test.json').reply(200, { data: true });
             // Pending event should fire first, so lets ensure we check both action types
-            let pending = true;
 
-            const middleware = fetchMiddleware()({ getState: doGetState });
-            const actionDefinition = {
+            actionDefinition = {
                 type: 'test',
                 fetch: {
                     url: 'http://localhost/test.json'
                 }
             };
 
-            const actionHandler = middleware((action) => {
-                if (pending) {
-                    // The `PENDING` action should be sent first, so ensure that's what we receive, then flip pending so we
-                    // can check the next action is the expected type
-                    action.type.should.equal(`${actionDefinition.type}_PENDING`);
-                    pending = false;
-                } else {
-                    // We've already received the `PENDING` action, so now we should receive the real action
-                    action.type.should.equal(actionDefinition.type);
-                }
-            });
+            const actionHandler = middleware(actionVerifier);
 
             let promise = actionHandler(actionDefinition);
             return promise.should.be.fulfilled.and
@@ -112,10 +120,8 @@ describe('redux-fetch-middleware', () => {
 
         it('should send FAILURE action when statusCode is not an acceptable value', () => {
             let request = nock('http://localhost').get('/test.json').reply(404, 'Not found');
-            let pending = true;
 
-            const middleware = fetchMiddleware()({ getState: doGetState });
-            const actionDefinition = {
+            actionDefinition = {
                 type: 'test',
                 fetch: {
                     url: 'http://localhost/test.json'
@@ -124,8 +130,8 @@ describe('redux-fetch-middleware', () => {
 
             const actionHandler = middleware((action) => {
                 if (pending) {
-                    // The `PENDING` action should be sent first, so ensure that's what we receive, then flip pending so we
-                    // can check the next action is the expected type
+                    // The `PENDING` action should be sent first, so ensure that's what we receive, then flip pending so
+                    // we can check the next action is the expected type
                     action.type.should.equal(`${actionDefinition.type}_PENDING`);
                     pending = false;
                 } else {
@@ -148,10 +154,8 @@ describe('redux-fetch-middleware', () => {
 
         it('should let method be specified for the fetch request', () => {
             let request = nock('http://localhost').post('/api').reply(200, { test: true });
-            let pending = true;
 
-            const middleware = fetchMiddleware()({ getState: doGetState });
-            const actionDefinition = {
+            actionDefinition = {
                 type: 'test',
                 fetch: {
                     url: 'http://localhost/api',
@@ -159,18 +163,12 @@ describe('redux-fetch-middleware', () => {
                 }
             };
 
-            const actionHandler = middleware((action) => {
-                if (pending) {
-                    action.type.should.equal(`${actionDefinition.type}_PENDING`);
-                    pending = false;
-                } else {
-                    action.type.should.equal(actionDefinition.type);
-                }
-            });
+            const actionHandler = middleware(actionVerifier);
 
             let promise = actionHandler(actionDefinition);
             return promise.should.be.fulfilled
             .then((data) => {
+                data.should.be.a('object');
                 data.test.should.equal(true);
                 request.isDone().should.equal(true);
             });
