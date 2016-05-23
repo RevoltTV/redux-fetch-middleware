@@ -1,6 +1,6 @@
 {
   "name": "@revolttv/redux-fetch-middleware",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Middleware for fetching remote resources",
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
