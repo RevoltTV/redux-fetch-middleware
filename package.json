@@ -1,17 +1,17 @@
 {
   "name": "@revolttv/redux-fetch-middleware",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "Middleware for fetching remote resources",
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
   "engines": {
-    "node": ">=0.12"
+    "node": ">=6"
   },
   "files": [
-    "dist",
     "lib",
     "es",
-    "index.js"
+    "index.js",
+    "test"
   ],
   "scripts": {
     "build": "npm run build:commonjs && npm run build:es",
