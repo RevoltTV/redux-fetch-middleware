@@ -156,6 +156,38 @@ describe('redux-fetch-middleware', () => {
             });
         });
 
+        it('should include status and original action in the meta property of the action on FAILURE', () => {
+            let request = nock('http://localhost').get('/test.json').reply(400, 'Bad Request');
+
+            actionDefinition = {
+                type: 'test',
+                fetch: {
+                    url: 'http://localhost/test.json'
+                }
+            };
+
+            const actionHandler = middleware((action) => {
+                if (pending) {
+                    action.type.should.equal(`${actionDefinition.type}_PENDING`);
+                    pending = false;
+                } else {
+                    action.type.should.equal(`${actionDefinition.type}_FAILURE`);
+                    action.meta.should.exist.and.be.a('object');
+                    action.meta.status.should.equal(400);
+                    action.meta.originalAction.should.deep.equal(actionDefinition);
+                }
+            });
+
+            let promise = actionHandler(actionDefinition);
+
+            return promise.should.be.rejected
+            .then((err) => {
+                err.status.should.equal(400);
+                pending.should.equal(false);
+                request.isDone().should.equal(true);
+            });
+        });
+
         it('should let method be specified for the fetch request', () => {
             let request = nock('http://localhost', {
                 reqheaders: {

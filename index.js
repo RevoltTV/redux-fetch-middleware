@@ -67,13 +67,16 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
                 payload: err,
                 error: true,
                 meta: {
-                    promise
+                    originalAction: action,
+                    promise,
+                    status: _.get(err, 'response.status', 500)
                 }
             });
 
             throw err;
         });
 
+        log(`PENDING: ${options.method} :: ${action.fetch.url}`);
         next({
             type: `${action.type}_PENDING`,
             payload: action,
