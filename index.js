@@ -6,7 +6,9 @@ const log = debug('@revolttv:redux-fetch-middleware');
 
 const determineContentType = (payload) => {
     if (typeof FormData !== 'undefined' && payload instanceof FormData) {
-        return 'multipart/form-data';
+        // We return null because the browser will automatically determine the Content-Type and add the proper
+        // multipart boundaries
+        return null;
     }
 
     return 'application/json';
@@ -57,7 +59,13 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         if (options.method.toUpperCase() !== 'GET' && action.payload) {
             options.headers['accept'] = options.headers['accept'] || 'application/json';
             options.headers['content-type'] = options.headers['content-type'] || determineContentType(action.payload);
-            options.body = JSON.stringify(action.payload);
+            options.body = action.payload;
+
+            if (options.headers['content-type'] === 'application/json') {
+                options.body = JSON.stringify(options.body);
+            } else if (!options.headers['content-type']) {
+                delete options.headers['content-type'];
+            }
         }
 
         promise = fetch(action.fetch.url, options)
