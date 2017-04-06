@@ -112,6 +112,7 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
             type: action.type,
             payload: body,
             meta: {
+                action,
                 promise
             }
         });
