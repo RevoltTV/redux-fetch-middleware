@@ -3,6 +3,19 @@ import debug from 'debug';
 import fetch from 'isomorphic-fetch';
 
 const log = debug('@revolttv:redux-fetch-middleware');
+
+const determineContentType = (payload) => {
+    if (typeof FormData !== 'undefined' && payload instanceof FormData) {
+        return 'multipart/form-data';
+    }
+
+    return 'application/json';
+};
+
+const lowercaseHeaders = (obj) => {
+    return _.mapKeys(obj, (value, key) => key.toLowerCase());
+};
+
 const middleware = (config = {}) => (store) => (next) => (action) => {
     if (!action.fetch) {
         return next(action);
@@ -31,19 +44,19 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
             log('applying auth header');
             let authHeader = authFn(state, action);
             if (authHeader) {
-                headers['Authorization'] = authHeader;
+                headers['authorization'] = authHeader;
             }
         }
 
         let options = {
             credentials: action.fetch.credentials || config.credentials || 'omit',
-            headers: _.extend(headers, config.headers, action.fetch.headers),
+            headers: _.extend(lowercaseHeaders(headers), lowercaseHeaders(config.headers), lowercaseHeaders(action.fetch.headers)),
             method: action.fetch.method || 'GET'
         };
 
         if (options.method.toUpperCase() !== 'GET' && action.payload) {
-            options.headers['Accept'] = 'application/json';
-            options.headers['Content-Type'] = 'application/json';
+            options.headers['accept'] = options.headers['accept'] || 'application/json';
+            options.headers['content-type'] = options.headers['content-type'] || determineContentType(action.payload);
             options.body = JSON.stringify(action.payload);
         }
 
