@@ -83,18 +83,21 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         .catch(err => {
             log(`FAILURE: ${options.method} :: ${action.fetch.url} (${_.get(err, 'response.status', 500)})`);
 
-            next({
-                type: `${action.type}_FAILURE`,
-                payload: err,
-                error: true,
-                meta: {
-                    originalAction: action,
-                    promise,
-                    status: _.get(err, 'response.status', 500)
-                }
-            });
+            return err.response.json()
+            .then(() => {
+                next({
+                    type: `${action.type}_FAILURE`,
+                    payload: err,
+                    error: true,
+                    meta: {
+                        originalAction: action,
+                        promise,
+                        status: _.get(err, 'response.status', 500)
+                    }
+                });
 
-            throw err;
+                throw err;
+            });
         });
 
         log(`PENDING: ${options.method} :: ${action.fetch.url}`);

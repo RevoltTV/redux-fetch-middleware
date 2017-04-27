@@ -123,7 +123,7 @@ describe('redux-fetch-middleware', () => {
         });
 
         it('should send FAILURE action when statusCode is not an acceptable value', () => {
-            let request = nock('http://localhost').get('/test.json').reply(404, 'Not found');
+            let request = nock('http://localhost').get('/test.json').reply(404, { error: true, message: 'Not Found' });
 
             actionDefinition = {
                 type: 'test',
@@ -157,7 +157,7 @@ describe('redux-fetch-middleware', () => {
         });
 
         it('should include status and original action in the meta property of the action on FAILURE', () => {
-            let request = nock('http://localhost').get('/test.json').reply(400, 'Bad Request');
+            let request = nock('http://localhost').get('/test.json').reply(400, { error: true, message: 'Bad Request' });
 
             actionDefinition = {
                 type: 'test',
