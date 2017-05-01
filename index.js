@@ -83,7 +83,7 @@ const middleware = (config = {}) => (store) => (next) => (action) => {
         .catch(err => {
             log(`FAILURE: ${options.method} :: ${action.fetch.url} (${_.get(err, 'response.status', 500)})`);
 
-            return err.response.json()
+            return (err.response ? err.response.json() : Promise.resolve())
             .then((body) => {
                 err.body = body;
                 next({
